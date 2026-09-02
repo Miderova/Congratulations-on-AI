@@ -58,7 +58,7 @@ export const generateGreeting = async (
 };
 
 // Функция теперь просто генерирует стабильную ссылку на фотосток
-export const generateGreetingImage = async (occasion: OccasionType, tone: ToneType, interests?: string): Promise<string> => {
+export const generateGreetingImage = async (occasion: OccasionType, _tone: ToneType, interests?: string): Promise<string> => {
     try {
         // Словарь для подбора ключевых слов под каждый праздник
         const keywordMap: Record<string, string> = {
@@ -82,7 +82,6 @@ export const generateGreetingImage = async (occasion: OccasionType, tone: ToneTy
 
         // Формируем ссылку на случайное качественное фото с Unsplash по ключевым словам
         // Добавляем случайное число sig, чтобы при каждом нажатии картинка была новой
-        const randomSignature = Math.floor(Math.random() * 1000);
         const imageUrl = `https://unsplash.com{randomSignature}&keyword=${searchKeyword}`;
 
         return imageUrl;

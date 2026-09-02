@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { OccasionType } from "./types";
 import { ToneType } from "./types";
-import { LANGUAGES } from "./constants";
 import type { LanguageType } from "./types";
 import { generateGreeting } from "./geminiService";
 import { Header } from "./components/Header";
