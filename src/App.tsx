@@ -7,7 +7,13 @@ import { generateGreeting } from "./geminiService";
 import { Header } from "./components/Header";
 import { AppTitle } from "./components/AppTitle";
 import { OccasionButton } from "./components/OccasionButton";
-import { Cake } from "lucide-react";
+import { Cake, Sparkles } from "lucide-react";
+import { Snowflake } from "lucide-react";
+import { UserDetailsSection } from "./components/UserDetailsSection";
+import { ExtraDetailsSection } from "./components/ExtraDetailsSection";
+import { GenerateButton } from "./components/GenerateButton";
+import { ResultSection } from "./components/ResultSection";
+import { generateGreetingImage } from "./geminiService";
 
 function App() {
   const [occasion, setOccasion] = useState<OccasionType>(OccasionType.BIRTHDAY);
@@ -16,8 +22,10 @@ function App() {
   const [interests, setInterests] = useState<string>("");
   const [tone, setTone] = useState<ToneType>(ToneType.FRIENDLY);
   const [language, setLanguage] = useState<LanguageType>("Русский");
+  const [isImageEnabled, setIsImageEnabled] = useState<boolean>(false);
 
   const [generatedText, setGeneratedText] = useState<string>("");
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,33 +39,46 @@ function App() {
     setLoading(true);
     setGeneratedText(""); // Очистить предыдущий результат
 
-    try {
-      const result = await generateGreeting(
+try {
+    // 1. Сначала генерируем текст поздравления через Gemini
+    const result = await generateGreeting(
         occasion,
         name,
         age,
         interests,
         tone,
         language,
-      );
-      setGeneratedText(result);
-    } catch (err: any) {
-      setError(err.message || "Произошла ошибка при генерации текста.");
-      //будет ошибка
-    } finally {
-      setLoading(false);
+    );
+    setGeneratedText(result);
+
+    // 2. Если галочка "Сгенерировать открытку" стоит — создаем картинку
+    if (isImageEnabled) {
+        // Обязательно пишем await и сохраняем картинку в переменную imageUrl
+        const imageUrl = await generateGreetingImage(occasion, tone, interests); 
+        // Записываем полученную Base64-строку в стейт вашего компонента
+        setGeneratedImageUrl(imageUrl); 
+    } else {
+        setGeneratedImageUrl(null);
     }
+
+} catch (err: any) {
+    setError(err.message || "Произошла ошибка при генерации.");
+} finally {
+    setLoading(false);
+}
   };
-  return (
+   return (
     <div className="min-h-screen bg-[#FAF5FF]">
       <Header />
+
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="max-w-7xl mx-auto">
           <AppTitle />
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
             {/* Левая колонка */}
-            <div className="lg:col-span-5 space-y-10">
+            <div className="lg:col-span-5 sm:space-y-10 space-y-8">
+              {/* Выбор типа праздника */}
               <section className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -73,61 +94,49 @@ function App() {
                     label={OccasionType.BIRTHDAY}
                     icon={Cake}
                     selected={occasion === OccasionType.BIRTHDAY}
-                    Onclick={() => setOccasion(OccasionType.BIRTHDAY)}
+                    onClick={() => setOccasion(OccasionType.BIRTHDAY)}
                   />
-
-                  <button onClick={() => setOccasion(OccasionType.NEW_YEAR)}>
-                    Новый Год
-                  </button>
+                  <OccasionButton
+                    label={OccasionType.NEW_YEAR}
+                    icon={Snowflake}
+                    selected={occasion === OccasionType.NEW_YEAR}
+                    onClick={() => setOccasion(OccasionType.NEW_YEAR)}
+                  />
                 </div>
               </section>
+
+              <UserDetailsSection
+                name={name}
+                age={age}
+                error={error}
+                setName={setName}
+                interests={interests}
+                setAge={setAge}
+                setError={setError}
+                setInterests={setInterests}
+              />
+
+              <ExtraDetailsSection
+                error={error}
+                language={language}
+                selectedTone={tone}
+                isImageEnabled={isImageEnabled}
+                setTone={setTone}
+                setLanguage={setLanguage}
+                setIsImageEnabled={setIsImageEnabled}
+              />
+
+              <GenerateButton isLoading={loading} onClick={handleGenerate}>
+                <Sparkles className={`w-5 h-5 ${loading ? "animate-spin" : "group-hover:animate-pulse"}`} />
+                {loading ? "Сочиняем..." : "Сгенерировать"}
+              </GenerateButton>
             </div>
 
             {/* Правая колонка */}
-            <div className="lg:col-span-7 h-full">2</div>
+            <div className="lg:col-span-7 h-full">
+              <ResultSection content={generatedText} isLoading={loading} imageUrl={generatedImageUrl} />
+            </div>
           </div>
-
-          <br />
-          <input
-            type="text"
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Юлька"
-          />
-          <br />
-          <input
-            type="text"
-            onChange={(e) => setAge(e.target.value)}
-            placeholder="22"
-          />
-          <br />
-          <textarea
-            value={interests}
-            onChange={(e) => setInterests(e.target.value)}
-            rows={2}
-            placeholder="Кодинг, котсы, эщкере"
-          />
-          <br />
-          {Object.values(ToneType).map((tone) => (
-            <button key={tone} onClick={() => setTone(tone)}>
-              {tone}
-            </button>
-          ))}
-
-          <br />
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as LanguageType)}
-          >
-            {LANGUAGES.map((lang) => (
-              <option value={lang} key={lang}>
-                {lang}
-              </option>
-            ))}
-          </select>
-          <hr />
-          <button onClick={handleGenerate} disabled={loading}>
-            Сгенерировать
-          </button>
         </div>
       </main>
     </div>
@@ -135,3 +144,4 @@ function App() {
 }
 
 export default App;
+
